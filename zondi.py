@@ -62,7 +62,7 @@ def home():
             return redirect('/dashboard')
     if session.get('dev_auth'):
         return redirect('/dev')
-    return redirect('/login)
+    return redirect('/login')
             
 @app.route('/login')
 def login_page():
