@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZONDI V7 Login</title>
+<style>body{background:#0f172a;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.box{background:#1e293b;padding:30px;border-radius:16px;width:90%;max-width:360px;text-align:center}input{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #334155;background:#0f172a;color:white;box-sizing:border-box}button{width:100%;padding:12px;background:#22c55e;color:black;font-weight:bold;border:none;border-radius:8px;margin-top:10px;cursor:pointer}a{color:#22c55e;font-size:13px}</style>
+</head><body><div class="box">
+<h3>ZONDI V7 Login</h3>
+<input id="loginId" placeholder="Username OR Cell 082...">
+<input id="pw" type="password" placeholder="Password">
+<button onclick="doLogin()">Login</button>
+<p><a href="/register">Create Account</a> | <a href="/dev">Dev</a></p>
+<p id="msg" style="color:#f87171;font-size:13px"></p>
+</div>
+<script>
+async function doLogin(){
+  const login=document.getElementById('loginId').value.trim();
+  const password=document.getElementById('pw').value;
+  if(!login||!password){document.getElementById('msg').innerText='Fill both';return}
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login,password})});
+  const j=await r.json();
+  if(j.ok) location.href='/dashboard'; else document.getElementById('msg').innerText=j.error;
+}
+</script></body></html>
