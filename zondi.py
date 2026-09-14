@@ -23,3 +23,16 @@ def home():
         return redirect('/dev')
     return redirect('/login)
             
+@app.route('/login')
+def login_page():
+    if 'user' in session:
+        return redirect('/')
+    return render_template('login.html')
+
+@app.route('api/login' , mothods =['POST'])
+def api_login():
+    data = request.get_json()
+    username = data.get('username', ).strip()
+    password = data.get('password', ).strip()
+    if not username or not password:
+            return jsonify
