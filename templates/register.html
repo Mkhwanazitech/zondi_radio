@@ -1,1 +1,57 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Register</title><style>body{background:#111b21;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh}.box{background:#202c33;padding:20px;border-radius:12px;width:320px}input,select{width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;background:#2a3942;color:#fff}button{width:100%;padding:12px;background:#00a884;border:none;color:#fff;border-radius:8px}</style></head><body><div class="box"><h3>Create Account</h3>{% if error %}<div style="color:#f15c6d">{{error}}</div>{% endif %}<form method="POST"><input name="fullname" placeholder="Full Name e.g. John Nkosi" required><input name="username" placeholder="Username" required><input name="phone" placeholder="Phone Number" required><input name="password" type="password" placeholder="Password" required><select name="role"><option value="client">Client</option><option value="patrol">HQ Officer</option><option value="dev">Developer</option></select><button>Register</button></form><br><a href="/login" style="color:#00a884">Login</a></div></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZONDI - Create Account</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:15px}
+.card{background:#1e293b;padding:28px;border-radius:16px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+input,select{width:100%;padding:13px;margin:8px 0;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#fff;box-sizing:border-box;font-size:15px}
+button{width:100%;padding:13px;background:#22c55e;color:#000;font-weight:bold;border:none;border-radius:10px;margin-top:12px;cursor:pointer;font-size:16px}
+button:hover{background:#16a34a}
+.error{background:#ef4444;padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px}
+.portal{display:flex;gap:8px;margin:8px 0}
+.portal input{display:none}
+.portal label{flex:1;background:#0f172a;border:1px solid #334155;padding:12px;border-radius:10px;text-align:center;cursor:pointer;font-size:13px;transition:0.2s}
+.portal input:checked+label{border-color:#22c55e;background:#14532d;color:#fff;font-weight:bold}
+small{color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="card">
+<h2 style="text-align:center;margin-top:0">🚨 ZONDI SECURITY</h2>
+<p style="text-align:center;color:#94a3b8;margin-top:-10px">Create Account - Step 1</p>
+
+{% if error %}<div class="error">{{error}}</div>{% endif %}
+
+<form method="POST">
+<input name="username" placeholder="Username e.g. thabo01" required value="{{username or ''}}" minlength="3">
+
+<input name="cell" placeholder="Cell Number - 0821234567" required value="{{cell or ''}}" pattern="(0[6-8][0-9]{8}|\+27[6-8][0-9]{8})">
+
+<input name="email" placeholder="Email (optional)" type="email" value="{{email or ''}}">
+
+<input type="password" name="password" placeholder="Password (6+ chars)" required minlength="6">
+
+<input type="password" name="confirm_password" placeholder="Confirm Password" required minlength="6">
+
+<p style="margin:14px 0 6px;font-size:14px;color:#e2e8f0">Choose Your Portal:</p>
+<div class="portal">
+  <input type="radio" id="client" name="role" value="client" {% if role=='client' or not role %}checked{% endif %}>
+  <label for="client">👤<br>Client</label>
+  
+  <input type="radio" id="patrol" name="role" value="patrol" {% if role=='patrol' %}checked{% endif %}>
+  <label for="patrol">🚓<br>Patroller</label>
+  
+  <input type="radio" id="dev" name="role" value="dev" {% if role=='dev' %}checked{% endif %}>
+  <label for="dev">💻<br>Developer</label>
+</div>
+<small>Client = needs help, Patroller = responds, Developer = sees all</small>
+
+<button type="submit">Create Account + Send OTP →</button>
+</form>
+
+<p style="text-align:center;margin-top:18px;font-size:14px">Already have account? <a href="/login" style="color:#22c55e;text-decoration:none;font-weight:bold">Login</a></p>
+</div>
+</body>
+</html>
