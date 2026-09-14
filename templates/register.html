@@ -1,40 +1,58 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ZONDI - Create Account</title>
-<style>
-body{font-family:Arial;background:#0f172a;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:15px}
-.card{background:#1e293b;padding:28px;border-radius:16px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-input,select{width:100%;padding:13px;margin:8px 0;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#fff;box-sizing:border-box;font-size:15px}
-button{width:100%;padding:13px;background:#22c55e;color:#000;font-weight:bold;border:none;border-radius:10px;margin-top:12px;cursor:pointer;font-size:16px}
-button:hover{background:#16a34a}
-.error{background:#ef4444;padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px}
-.portal{display:flex;gap:8px;margin:8px 0}
-.portal input{display:none}
-.portal label{flex:1;background:#0f172a;border:1px solid #334155;padding:12px;border-radius:10px;text-align:center;cursor:pointer;font-size:13px;transition:0.2s}
-.portal input:checked+label{border-color:#22c55e;background:#14532d;color:#fff;font-weight:bold}
-small{color:#94a3b8}
-</style>
-</head>
-<body>
-<div class="card">
-<h2 style="text-align:center;margin-top:0">🚨 ZONDI SECURITY</h2>
-<p style="text-align:center;color:#94a3b8;margin-top:-10px">Create Account - Step 1</p>
-
-{% if error %}<div class="error">{{error}}</div>{% endif %}
-
-<form method="POST">
-<input name="username" placeholder="Username e.g. thabo01" required value="{{username or ''}}" minlength="3">
-
-<input name="cell" placeholder="Cell Number - 0821234567" required value="{{cell or ''}}" pattern="(0[6-8][0-9]{8}|\+27[6-8][0-9]{8})">
-
-<input name="email" placeholder="Email (optional)" type="email" value="{{email or ''}}">
-
-<input type="password" name="password" placeholder="Password (6+ chars)" required minlength="6">
-
-<input type="password" name="confirm_password" placeholder="Confirm Password" required minlength="6">
-
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Register - ZONDI V7</title>
+<style>body{background:#0f172a;color:#fff;font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.card{background:#1e293b;padding:25px;border-radius:14px;width:95%;max-width:380px}input,select{width:100%;padding:12px;margin:7px 0;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;box-sizing:border-box}button{width:100%;padding:12px;background:#22c55e;border:none;border-radius:8px;font-weight:bold;margin-top:10px;cursor:pointer}.err{background:#7f1d1d;border:1px solid #ef4444;padding:10px;border-radius:8px;margin-bottom:10px}.ok{background:#14532d;border:1px solid #22c55e;padding:10px;border-radius:8px;margin-bottom:10px;color:#fff}.portal{display:flex;gap:6px;margin:5px 0}label{flex:1;text-align:center;border:1px solid #334155;padding:8px;border-radius:8px;cursor:pointer;font-size:13px}label:has(input:checked){background:#22c55e;color:#000;border-color:#22c55e}</style>
+</head><body><div class="card">
+<h2 style="text-align:center">🚨 ZONDI V7 Register</h2>
+<div id="msg"></div>
+<form id="regForm">
+<input name="username" placeholder="Username e.g. thabo01" required minlength="3">
+<input name="cell" placeholder="Cell 082... or +27..." required>
+<input name="email" placeholder="Email (optional)">
+<input type="password" name="password" placeholder="Password 6+ chars" required>
+<input type="password" name="confirm_password" placeholder="Confirm password" required>
+<p style="font-size:13px;margin:10px 0 5px">Portal:</p>
+<div class="portal">
+<label><input type="radio" name="role" value="client" checked hidden> 👤 Client</label>
+<label><input type="radio" name="role" value="patrol" hidden> 🚓 Patrol</label>
+<label><input type="radio" name="role" value="dev" hidden> 💻 Dev</label>
+</div>
+<button type="submit">Create + Send OTP</button>
+</form>
+<div id="otpBox" style="display:none">
+<h3>Enter OTP</h3>
+<p id="otpInfo" style="font-size:13px;color:#94a3b8"></p>
+<input id="otp" placeholder="6-digit OTP" maxlength="6" style="letter-spacing:6px;text-align:center;font-size:20px">
+<button onclick="verify()">Verify OTP</button>
+<button onclick="resend()" style="background:#334155;color:#fff">Resend OTP</button>
+</div>
+<p style="text-align:center"><a href="/login" style="color:#22c55e">Already have account? Login</a></p>
+</div>
+<script>
+let pendingCell='';
+document.getElementById('regForm').onsubmit=async(e=>{
+ e.preventDefault();
+ const fd=new FormData(e.target); const obj=Object.fromEntries(fd);
+ const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+ const d=await r.json();
+ if(!d.ok){ document.getElementById('msg').innerHTML=`<div class=err>${d.error}</div>`; return; }
+ pendingCell=d.cell;
+ document.getElementById('msg').innerHTML=`<div class=ok>OTP sent to ${d.cell}. DEV OTP: <b>${d.dev_otp}</b> (check terminal)</div>`;
+ document.getElementById('otpInfo').innerText=`OTP sent to ${d.cell} - DEV CODE: ${d.dev_otp}`;
+ document.getElementById('regForm').style.display='none'; document.getElementById('otpBox').style.display='block';
+};
+async function verify(){
+ const otp=document.getElementById('otp').value;
+ const r=await fetch('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cell:pendingCell,otp})});
+ const d=await r.json();
+ if(!d.ok){ document.getElementById('msg').innerHTML=`<div class=err>${d.error}</div>`; return; }
+ document.getElementById('msg').innerHTML=`<div class=ok>${d.message} - Login now...</div>`;
+ setTimeout(()=>location.href='/login',1500);
+}
+async function resend(){
+ const r=await fetch('/api/resend-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cell:pendingCell})});
+ const d=await r.json(); document.getElementById('msg').innerHTML=`<div class=ok>New OTP: <b>${d.dev_otp}</b></div>`;
+}
+document.querySelectorAll('.portal label').forEach(l=>{ l.onclick=()=>{ document.querySelectorAll('.portal label').forEach(x=>x.style.background=''); l.style.background='#22c55e'; l.style.color='#000'; }}); 
+</script></body></html>
 <p style="margin:14px 0 6px;font-size:14px;color:#e2e8f0">Choose Your Portal:</p>
 <div class="portal">
   <input type="radio" id="client" name="role" value="client" {% if role=='client' or not role %}checked{% endif %}>
