@@ -1,1 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client Portal - ZONDI PATROL SERVICE</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+body{background:#000;color:#D4AF37;font-family:Arial;margin:0}
+.header{background:#111;border-bottom:3px solid gold;padding:15px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:bold;letter-spacing:2px}
+.card{background:#0e0e0e;border:1px solid gold;border-radius:14px;padding:16px;margin:14px}
+.panic{background:#ff0000;color:#fff;border:none;padding:22px;width:100%;font-size:22px;font-weight:900;border-radius:14px;cursor:pointer;box-shadow:0 0 25px red;letter-spacing:2px}
+.btn{background:gold;color:#000;border:none;padding:13px;width:100%;border-radius:10px;font-weight:bold;margin-top:10px;cursor:pointer;font-size:16px}
+input,textarea{width:100%;padding:12px;margin:7px 0;background:#000;border:1px solid #D4AF37;color:gold;border-radius:10px;box-sizing:border-box}
+.footer{text-align:center;padding:20px;font-size:11px;opacity:0.5;border-top:1px solid #222;margin-top:20px}
+.tag{background:gold;color:black;padding:2px 8px;border-radius:20px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="header">
+<div class="logo">ZONDI PATROL <span style="color:white">SERVICE</span></div>
+<div><span style="font-size:12px">{{user['username']}} <span class="tag">CLIENT</span></span> | <a href="/logout" style="color:gold;text-decoration:none">Logout</a></div>
+</div>
 
+<div class="card">
+<h3 style="margin:0 0 10px 0">🛡️ My Protection Status</h3>
+<p style="line-height:1.8">
+<b>Username:</b> {{user['username']}}<br>
+<b>Phone:</b> {{user['phone']}}<br>
+<b>Address:</b> {{user['address'] or 'Not set'}}<br>
+<b>Status:</b> <span style="color:#0f0">● PROTECTED / ONLINE</span>
+</p>
+</div>
+
+<div class="card" style="border:2px solid red">
+<button class="panic" onclick="sendPanic()">🚨 PANIC BUTTON</button>
+<p style="text-align:center;font-size:12px;color:#aaa;margin-top:10px">Emergency? Press to alert all patrollers on duty with your address</p>
+</div>
+
+<div class="card">
+<h3>🚓 Request Patrol</h3>
+<input id="address" placeholder="Your address / location" value="{{user['address'] or ''}}">
+<textarea id="note" rows="3" placeholder="Note: e.g Patrol tonight 22:00, check my gate"></textarea>
+<button class="btn" onclick="requestPatrol()">SEND PATROL REQUEST</button>
+<p id="msg" style="text-align:center"></p>
+</div>
+
+<div class="card">
+<h3>📜 My Requests History</h3>
+<div id="history">
+{% for r in requests %}
+<div style="border-bottom:1px solid #222;padding:10px 0;font-size:13px">
+<b>{{r['created_at']}}</b><br>{{r['address']}} - {{r['note']}}<br><span style="color:gold">{{r['status']}}</span>
+</div>
+{% else %}
+<div style="font-size:13px;color:#666">No requests yet</div>
+{% endfor %}
+</div>
+</div>
+
+<div class="footer">Created by mkhwanazitech.com<br>ZONDI PATROL SERVICE - Securing Ga-Rankuwa</div>
+
+<script>
+const socket = io();
+function requestPatrol(){
+ const addr=document.getElementById('address').value;
+ const note=document.getElementById('note').value;
+ if(!addr){alert('Enter address');return;}
+ fetch('/api/request-patrol',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:addr,note:note})}).then(r=>r.json()).then(d=>{
+  if(d.ok){document.getElementById('msg').innerText='✅ Request sent!'; setTimeout(()=>location.reload(),800);}
+ });
+}
+function sendPanic(){
+ if(!confirm('CONFIRM EMERGENCY PANIC? All patrollers will be alerted.')) return;
+ fetch('/api/panic',{method:'POST'}).then(r=>r.json()).then(d=>{
+  if(d.ok){alert('🚨 PANIC SENT TO ALL PATROLLERS!');}
+ });
+}
+</script>
+</body>
+</html>
