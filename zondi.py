@@ -35,8 +35,19 @@ cur.execute("""
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
             created_by TEXT
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS group_members (
+            group_id INTEGER,
+            username TEXT,
+            PRIMARY KEY (group_id, username)
+        )
+    """)
 
-
+    conn.commit()
+    conn.close()
+    print("DB ready")
 @app.route('/')
 def home():
     if 'user' in session:
