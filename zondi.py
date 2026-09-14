@@ -1,27 +1,25 @@
-from flask import Flask , render_template , request , jsonify , redirect
-from flask_socketio import socketIO
-from datetime import timedeLta
+from flask import Flask, render_template, request, redirect, session, jsonify
+from flask_socketio import SocketIO
+from datetime import timedelta
 import os
-
-app = Flask(_name_)
-app.secret_key = os.environ.get("SECRET_KEY" , "ZONDI_V7_1_FIXED_2026")
-app.config["PERMANENT_SESSION_LIFETIME"] = timedeLta(days=30)
-DEV_PASSWORD = os.environ.get("DEV_PASSWORD" , "zondi@123")
-socketio = socketIO(app, cors_allowed_origins= , async_mode='threading')
-
 import sqlite3
-def get_db
 
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "ZONDI_V7_1_FIXED_2026")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+DEV_PASSWORD = os.environ.get("DEV_PASSWORD", "zondi@123")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+def get_db():
     conn = sqlite3.connect('zondi.db')
-    conn.row_factory = sqlite3.row
+    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-
-    conn = get.db()
+    conn = get_db()
     cur = conn.cursor()
     cur.execute("""
-        CREATE TABLE IF NOT EXIST users (
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
@@ -29,9 +27,8 @@ def init_db():
             status TEXT DEFAULT 'offline'
         )
     """)
-
-cur.execute("""
-        CREATE TABLE IF NOT EXIST groups (
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS groups (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
             created_by TEXT
@@ -44,10 +41,10 @@ cur.execute("""
             PRIMARY KEY (group_id, username)
         )
     """)
-
     conn.commit()
     conn.close()
     print("DB ready")
+
 init_db()
 
 @app.route('/')
