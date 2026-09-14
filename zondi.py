@@ -42,7 +42,11 @@ def api_login():
     row = cur.fetchone()
     conn.close()
     if not row:
-        return jsonify({'ok': False, 'msg': 'user not found"})
+        return jsonify({'ok': False, 'msg': 'user not found"}) , 404
     db_user, db_pass, db__role = row
     if db_pass !=password:
-        return jsonify({'ok': False
+        return jsonify({'ok': False, 'msg': 'wrong password'}) , 401
+    session['user] = db_user
+    session['role'] = db_role
+    session.permanent = true
+    return jsonify({'ok': True, 'role': db_role})
