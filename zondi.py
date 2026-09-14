@@ -9,6 +9,34 @@ app.config("PERMANENT_SESSION_LIFETIME") = timedeLta(days=30)
 DEV_PASSWORD = os.environ.get("DEV_PASSWORD" , "zondi@123")
 socketio = socketIO(app, cors_allowed_origins= , async_mode='threading')
 
+import sqlite3
+def get_db
+
+    conn = sqlite3.connect('zondi.db')
+    conn.row_factory = sqlite3.row
+    return conn
+
+def init_db():
+
+    conn = get.db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXIST users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            status TEXT DEFAULT 'offline'
+        )
+    """)
+
+cur.execute("""
+        CREATE TABLE IF NOT EXIST groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            created_by TEXT
+
+
 @app.route('/')
 def home():
     if 'user' in session:
