@@ -35,4 +35,14 @@ def api_login():
     username = data.get('username', ).strip()
     password = data.get('password', ).strip()
     if not username or not password:
-            return jsonify
+        return jsonify({'ok': False, 'msg': 'Enter username and password'}) , 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT username , password , role FROM user WHERE username=?", (username,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return jsonify({'ok': False, 'msg': 'user not found"})
+    db_user, db_pass, db__role = row
+    if db_pass !=password:
+        return jsonify({'ok': False
