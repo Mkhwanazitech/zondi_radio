@@ -50,13 +50,10 @@ init_db()
 @app.route('/')
 def home():
     if 'user' in session:
-        role = session.get('role' , 'client')
-        if role = 'dev':
+        role = session.get('role', 'client')
+        if role == 'dev':
             return redirect('/dev')
-        if role = 'patroller':
-            retun redirect('/patoller')
-        if role = 'dashboard':
-            return redirect('/dashboard')
+        return redirect('/dashboard')
     if session.get('dev_auth'):
         return redirect('/dev')
     return redirect('/login')
