@@ -48,6 +48,8 @@ cur.execute("""
     conn.commit()
     conn.close()
     print("DB ready")
+init_db()
+
 @app.route('/')
 def home():
     if 'user' in session:
