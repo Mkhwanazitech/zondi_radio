@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZONDI Dev Portal</title>
+  <style>
+    body { background:#0f172a; color:white; font-family:Arial; margin:0; }
+    .card { background:#1e293b; padding:24px; border-radius:20px; max-width:400px; margin:80px auto; }
+    input { width:100%; padding:14px; margin:8px 0; border-radius:10px; border:1px solid #334155; background:#0f172a; color:white; }
+    .btn { width:100%; padding:14px; background:#22c55e; border:none; border-radius:10px; font-weight:bold; margin-top:12px; cursor:pointer; }
+    .tabs { display:flex; gap:8px; overflow-x:auto; margin:20px; }
+    .tab { padding:10px 16px; background:#1e293b; border-radius:8px; cursor:pointer; }
+    .tab.active { background:#22c55e; color:black; }
+    .panel { margin:20px; background:#1e293b; padding:16px; border-radius:12px; display:none; }
+    .panel.active { display:block; }
+  </style>
+</head>
+<body>
+<div id="loginBox" class="card">
+  <h2 style="text-align:center">ZONDI V7 Dev Login</h2>
+  <input id="devUser" placeholder="Dev Username">
+  <input id="devPass" type="password" placeholder="Dev Password">
+  <button class="btn" onclick="devLogin()">Login</button>
+  <p style="text-align:center; margin-top:10px; font-size:12px;"><a href="/login" style="color:#22c55e">Back to Main Login</a></p>
+</div>
+
+<div id="portal" style="display:none;">
+  <h2 style="text-align:center">ZONDI Dev Dashboard</h2>
+  <div class="tabs">
+    <div class="tab active" onclick="openTab('overview')">Overview</div>
+    <div class="tab" onclick="openTab('clients')">Clients</div>
+    <div class="tab" onclick="openTab('patrollers')">Patrollers</div>
+    <div class="tab" onclick="openTab('radio')">Radio</div>
+    <div class="tab" onclick="openTab('logs')">Logs</div>
+  </div>
+  <div id="overview" class="panel active">Loading stats from /api/stats...</div>
+  <div id="clients" class="panel">Loading clients from /api/clients...</div>
+  <div id="patrollers" class="panel">Loading patrollers from /api/patrollers...</div>
+  <div id="radio" class="panel">Radio streams status...</div>
+  <div id="logs" class="panel">System logs...</div>
+</div>
+
+<script>
+async function devLogin(){
+  const u = document.getElementById('devUser').value;
+  const p = document.getElementById('devPass').value;
+  const res = await fetch('/api/dev/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,password:p})});
+  const data = await res.json();
+  if(data.ok){
+    document.getElementById('loginBox').style.display='none';
+    document.getElementById('portal').style.display='block';
+    loadData();
+  } else { alert('Wrong dev login'); }
+}
+function openTab(id){
+  document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+async function loadData(){
+  // fetch info from other portals
+  const c = await fetch('/api/clients').then(r=>r.json()).catch(()=>[]);
+  document.getElementById('clients').innerHTML = `<b>Total Clients:</b> ${c.length}<br>`+ JSON.stringify(c).slice(0,500);
+  const p = await fetch('/api/patrollers').then(r=>r.json()).catch(()=>[]);
+  document.getElementById('patrollers').innerHTML = `<b>Total Patrollers:</b> ${p.length}`;
+}
+</script>
+</body>
+</html>
