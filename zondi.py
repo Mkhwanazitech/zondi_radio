@@ -64,24 +64,31 @@ def login_page():
         return redirect('/')
     return render_template('login.html')
 
-@app.route('api/login' , methods =['POST'])
+@app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json()
-    username = data.get('username', ).strip()
-    password = data.get('password', ).strip()
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    
     if not username or not password:
-        return jsonify({'ok': False, 'msg': 'Enter username and password'}) , 400
+        return jsonify({'ok': False, 'msg': 'Enter username and password'}), 400
+    
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT username , password , role FROM user WHERE username=?", (username,))
+    cur.execute("SELECT username, password, role FROM users WHERE username=?", (username,))
     row = cur.fetchone()
     conn.close()
+    
     if not row:
-        return jsonify({'ok': False, 'msg': 'user not found'}) , 404
-    db_user, db_pass, db__role = row
-    if db_pass !=password:
-        return jsonify({'ok': False, 'msg': 'wrong password'}) , 401
+        return jsonify({'ok': False, 'msg': 'user not found'}), 404
+    
+    db_user, db_pass, db_role = row
+    
+    if db_pass != password:
+        return jsonify({'ok': False, 'msg': 'wrong password'}), 401
+    
     session['user'] = db_user
     session['role'] = db_role
-    session.permanent = true
+    session.permanent = True
+    
     return jsonify({'ok': True, 'role': db_role})
