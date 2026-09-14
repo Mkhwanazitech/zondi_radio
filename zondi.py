@@ -5,7 +5,7 @@ import os
 
 app = Flask(_name_)
 app.secret_key = os.environ.get("SECRET_KEY" , "ZONDI_V7_1_FIXED_2026")
-app.config("PERMANENT_SESSION_LIFETIME") = timedeLta(days=30)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedeLta(days=30)
 DEV_PASSWORD = os.environ.get("DEV_PASSWORD" , "zondi@123")
 socketio = socketIO(app, cors_allowed_origins= , async_mode='threading')
 
