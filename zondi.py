@@ -87,7 +87,7 @@ def api_login():
     db_user, db_pass, db__role = row
     if db_pass !=password:
         return jsonify({'ok': False, 'msg': 'wrong password'}) , 401
-    session['user] = db_user
+    session['user'] = db_user
     session['role'] = db_role
     session.permanent = true
     return jsonify({'ok': True, 'role': db_role})
