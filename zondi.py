@@ -64,7 +64,7 @@ def login_page():
         return redirect('/')
     return render_template('login.html')
 
-@app.route('api/login' , mothods =['POST'])
+@app.route('api/login' , methods =['POST'])
 def api_login():
     data = request.get_json()
     username = data.get('username', ).strip()
