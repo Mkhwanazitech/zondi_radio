@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZONDI Dev - Home Theme</title>
+<style>
+body{margin:0;font-family:Inter,sans-serif;background:#FFF7ED;color:#222}
+.top{background:#FF6B00;color:white;padding:16px;text-align:center;font-weight:800;font-size:21px;letter-spacing:0.5px}
+.tabs{display:flex;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:10}
+.tab{flex:1;padding:14px;text-align:center;cursor:pointer;border-bottom:3px solid transparent;font-weight:600}
+.tab.active{border-color:#FF6B00;color:#FF6B00}
+.wrap{padding:12px;max-width:600px;margin:0 auto}
+.card{background:white;margin:12px 0;border-radius:18px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06)}
+.btn{background:#FF6B00;color:white;border:none;padding:12px 20px;border-radius:25px;width:100%;font-weight:700;margin-top:10px;cursor:pointer}
+.btn-dark{background:#222}
+.stat{display:flex;justify-content:space-between;background:#FFF7ED;padding:12px;border-radius:12px;margin:6px 0}
+</style>
+</head>
+<body>
+<div class="top">ZONDI DEV • HOME THEME • LIVE</div>
+<div class="tabs">
+  <div class="tab active" onclick="show('overview',this)">Overview</div>
+  <div class="tab" onclick="show('users',this)">Users</div>
+  <div class="tab" onclick="show('logs',this)">Logs</div>
+</div>
+
+<div class="wrap">
+  <div id="overview" class="card">
+    <h3 style="margin-top:0;color:#FF6B00">System Status</h3>
+    <div class="stat"><span>🟢 Server</span><b>Live</b></div>
+    <div class="stat"><span>🟢 Database</span><b>Connected</b></div>
+    <div class="stat"><span>🟢 Client Portal</span><b>100% Good</b></div>
+    <div class="stat"><span>🟢 Patrol Portal</span><b>Fixed</b></div>
+    <div class="stat"><span>📍 Active Users</span><b>12 Online</b></div>
+    <button class="btn" onclick="location.href='/dashboard'">Go to Client Portal</button>
+    <button class="btn btn-dark" onclick="location.href='/patrol'">Go to Patrol Portal</button>
+  </div>
+
+  <div id="users" class="card" style="display:none">
+    <h3 style="color:#FF6B00">Manage Users</h3>
+    <div class="stat"><span>admin (dev)</span><button style="background:#FF6B00;color:white;border:none;padding:5px 10px;border-radius:10px">Edit</button></div>
+    <div class="stat"><span>thabo (client)</span><button style="background:#FF6B00;color:white;border:none;padding:5px 10px;border-radius:10px">Edit</button></div>
+    <div class="stat"><span>patroller01</span><button style="background:#FF6B00;color:white;border:none;padding:5px 10px;border-radius:10px">Edit</button></div>
+    <button class="btn">+ Add New User</button>
+  </div>
+
+  <div id="logs" class="card" style="display:none">
+    <h3 style="color:#FF6B00">Live Logs</h3>
+    <div style="background:#111;color:#0f0;padding:12px;border-radius:10px;font-family:monospace;font-size:12px;height:200px;overflow:auto">
+      [LIVE] GET /login 200<br>
+      [LIVE] GET /dashboard 200<br>
+      [LIVE] User thabo connected<br>
+      [LIVE] Patrol unit online<br>
+      [LIVE] System OK - Home Theme Locked 🔒
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id, el){
+  document.getElementById('overview').style.display='none';
+  document.getElementById('users').style.display='none';
+  document.getElementById('logs').style.display='none';
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
