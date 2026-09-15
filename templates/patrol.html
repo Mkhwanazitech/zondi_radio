@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZONDI Patrol - Home Theme</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+body{margin:0;font-family:Inter,sans-serif;background:#FFF7ED;color:#222}
+.top{background:#FF6B00;color:white;padding:16px;text-align:center;font-weight:800;font-size:20px;letter-spacing:0.5px}
+.tabs{display:flex;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:20}
+.tab{flex:1;padding:14px;text-align:center;cursor:pointer;border-bottom:3px solid transparent;font-weight:700}
+.tab.active{border-color:#FF6B00;color:#FF6B00}
+.wrap{padding:12px;max-width:600px;margin:0 auto}
+.card{background:white;margin:12px 0;border-radius:18px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06)}
+#map{height:340px;background:linear-gradient(135deg,#FFEAD5,#FFB67A);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#7A3A00;font-weight:800}
+.job{padding:12px;border-left:5px solid #FF6B00;background:#FFF7ED;margin:10px 0;border-radius:10px;display:flex;justify-content:space-between;align-items:center}
+.btn{background:#FF6B00;color:white;border:none;padding:13px 20px;border-radius:30px;width:100%;font-weight:800;margin-top:10px;cursor:pointer}
+.btn-dark{background:#222}
+.badge{background:#FF6B00;color:white;padding:4px 10px;border-radius:20px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="top">ZONDI PATROL • WELCOME HOME THEME</div>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('mapTab',this)">Map</div>
+  <div class="tab" onclick="showTab('jobsTab',this)">Jobs</div>
+  <div class="tab" onclick="showTab('chatTab',this)">Chat</div>
+</div>
+
+<div class="wrap">
+  <div id="mapTab">
+    <div class="card">
+      <div id="map">📍 Ga-Rankuwa Patrol Zone<br><small style="font-weight:600">Live GPS • Waiting for location</small></div>
+      <button class="btn" onclick="goOnDuty()">✅ I'm On Duty</button>
+      <button class="btn btn-dark" onclick="panic()">🚨 Panic / Backup</button>
+      <p id="status" style="text-align:center;color:#FF6B00;font-weight:700;margin-top:10px">Status: Offline</p>
+    </div>
+  </div>
+
+  <div id="jobsTab" style="display:none">
+    <div class="card">
+      <h3 style="margin:0;color:#FF6B00">Incoming Jobs <span class="badge" id="jobCount">2</span></h3>
+      <div id="jobList">
+        <div class="job"><div><b>Intrusion Alert</b><br><small>0.3km • Client: Thabo • Ga-Rankuwa</small></div><button class="btn" style="width:80px;margin:0" onclick="accept(this)">Accept</button></div>
+        <div class="job"><div><b>Medical Assist</b><br><small>1.2km • Zondi HQ</small></div><button class="btn" style="width:80px;margin:0" onclick="accept(this)">Accept</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chatTab" style="display:none">
+    <div class="card">
+      <h3 style="margin:0;color:#FF6B00">Patrol Chat - Live</h3>
+      <div id="chatBox" style="background:#FFF7ED;border-radius:12px;padding:10px;height:220px;overflow:auto;margin-top:10px">
+        <div style="background:white;padding:8px 12px;border-radius:15px;margin:6px 0;width:fit-content"><b>HQ:</b> Welcome patroller 👋</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input id="msgInput" placeholder="Type..." style="flex:1;padding:12px;border-radius:25px;border:1px solid #ddd">
+        <button class="btn" style="width:80px;margin:0" onclick="sendMsg()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+function showTab(id, el){
+  document.getElementById('mapTab').style.display='none';
+  document.getElementById('jobsTab').style.display='none';
+  document.getElementById('chatTab').style.display='none';
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function goOnDuty(){
+  document.getElementById('status').innerText='Status: On Duty 🟢';
+  if(navigator.geolocation){
+    navigator.geolocation.watchPosition(p=>{
+      socket.emit('patrol_location',{lat:p.coords.latitude,lng:p.coords.longitude});
+      document.getElementById('map').innerHTML=`📍 Live<br><small>${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}</small>`;
+    });
+  }
+}
+function panic(){ socket.emit('panic',{msg:'Patrol needs backup!'}); alert('Backup requested!'); }
+function accept(btn){ btn.innerText='En Route'; btn.style.background='#222'; }
+function sendMsg(){
+  const i=document.getElementById('msgInput'); if(!i.value) return;
+  const box=document.getElementById('chatBox');
+  box.innerHTML+=`<div style="background:#FF6B00;color:white;padding:8px 12px;border-radius:15px;margin:6px 0;margin-left:auto;width:fit-content">${i.value}</div>`;
+  socket.emit('patrol_chat',{msg:i.value}); i.value=''; box.scrollTop=box.scrollHeight;
+}
+socket.on('new_job', data=>{
+  const list=document.getElementById('jobList');
+  list.innerHTML=`<div class="job"><div><b>${data.type}</b><br><small>${data.msg}</small></div><button class="btn" style="width:80px;margin:0">Accept</button></div>`+list.innerHTML;
+});
+</script>
+</body>
+</html>
