@@ -23,7 +23,9 @@ print(f"=== USING TEMPLATE DIR: {TEMPLATE_DIR} ===")
 print(f"=== EXISTS? {os.path.exists(TEMPLATE_DIR)} FILES: {os.listdir(TEMPLATE_DIR) if os.path.exists(TEMPLATE_DIR) else 'NO'} ===")
 app.secret_key = os.environ.get("SECRET_KEY", "ZONDI_FINAL")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+import eventlet
+eventlet.monkey_patch()
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 DB_PATH = 'zondi.db'
 
 def get_db():
