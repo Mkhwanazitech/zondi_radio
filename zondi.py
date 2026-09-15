@@ -161,6 +161,133 @@ def logout():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host='0.0.0.0', port=port)        return redirect('/dashboard')
+    return redirect('/login')
+
+@app.route('/login')
+def login_page():
+    if 'user' in session:
+        return redirect('/')
+    return render_template('login.html')
+
+@app.route('/api/send-otp', methods=['POST'])
+def send_otp():
+    data = request.get_json() or {}
+    otp = str(random.randint(100000, 999999))
+    session['pending_otp'] = otp
+    return jsonify(ok=True, mock_otp=otp)
+
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.get_json() or {}
+    username = data.get('username','').strip()
+    password = data.get('password','').strip()
+    phone = data.get('phone','').strip()
+    role = data.get('role','client').strip().lower()
+    otp_input = data.get('otp','').strip()
+    if otp_input != session.get('pending_otp'):
+        return jsonify(ok=False, error="Invalid OTP"), 400
+    conn = get_db()
+    try:
+        conn.execute("INSERT INTO users (username,password,phone,role,is_verified,status) VALUES (?,?,?,?,?,?)", (username,password,phone,role,1,'online'))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify(ok=False, error="Username exists"), 400
+    conn.close()
+    session.permanent = True
+    session['user'] = username
+    session['role'] = role
+    target = '/dashboard' if role == 'client' else '/' + role
+    return jsonify(ok=True, redirect=target)
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json() or {}
+    username = data.get('username','').strip()
+    password = data.get('password','').strip()
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+    if not row or row['password'] != password:
+        conn.close()
+        return jsonify(ok=False, msg='wrong login'), 401
+    conn.execute("UPDATE users SET status='online' WHERE username=?", (username,))
+    conn.commit()
+    conn.close()
+    session['user'] = row['username']
+    session['role'] = row['role']
+    session.permanent = True
+    target = '/dashboard' if row['role'] == 'client' else '/' + row['role']
+    return jsonify(ok=True, redirect=target)
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user' not in session:
+        return redirect('/login')
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE username=?", (session['user'],)).fetchone()
+    reqs = conn.execute("SELECT * FROM patrol_requests WHERE username=? ORDER BY id DESC", (session['user'],)).fetchall()
+    conn.close()
+    return render_template('dashboard.html', user=user, requests=reqs)
+
+@app.route('/api/request-patrol', methods=['POST'])
+def request_patrol():
+    data = request.get_json() or {}
+    conn = get_db()
+    conn.execute("INSERT INTO patrol_requests (username,address,note) VALUES (?,?,?)", (session['user'], data.get('address',''), data.get('note','')))
+    conn.commit()
+    conn.close()
+    socketio.emit('new_patrol_request', {'username': session['user']})
+    return jsonify(ok=True)
+
+@app.route('/api/panic', methods=['POST'])
+def panic():
+    conn = get_db()
+    u = conn.execute("SELECT phone,address FROM users WHERE username=?", (session['user'],)).fetchone()
+    conn.execute("INSERT INTO alerts (username,phone,address) VALUES (?,?,?)", (session['user'], u['phone'] if u else '', u['address'] if u else ''))
+    conn.commit()
+    conn.close()
+    socketio.emit('panic_alert', {'username': session['user']}, broadcast=True)
+    return jsonify(ok=True)
+
+@app.route('/patrol')
+def patrol_portal():
+    if 'user' not in session:
+        return redirect('/login')
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE username=?", (session['user'],)).fetchone()
+    reqs = conn.execute("SELECT * FROM patrol_requests ORDER BY id DESC").fetchall()
+    alerts = conn.execute("SELECT * FROM alerts ORDER BY id DESC LIMIT 20").fetchall()
+    conn.close()
+    return render_template('patrol.html', user=user, requests=reqs, alerts=alerts)
+
+@app.route('/api/accept-request/<int:req_id>', methods=['POST'])
+def accept_request(req_id):
+    conn = get_db()
+    conn.execute("UPDATE patrol_requests SET status='accepted' WHERE id=?", (req_id,))
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True)
+
+@app.route('/api/complete-request/<int:req_id>', methods=['POST'])
+def complete_request(req_id):
+    conn = get_db()
+    conn.execute("UPDATE patrol_requests SET status='completed' WHERE id=?", (req_id,))
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True)
+
+@app.route('/dev')
+def dev_portal():
+    return "<h1>DEV COMING NEXT</h1><a href='/logout'>Logout</a>"
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host='0.0.0.0', port=port)        role = session.get('role', 'client')
         if role == 'dev':
             return redirect('/dev')
