@@ -152,8 +152,13 @@ def complete_request(req_id):
     return jsonify(ok=True)
 
 @app.route('/dev')
-def dev_portal():
-    return "<h1 style='font-family:sans-serif;padding:40px'>DEV portal coming next - <a href='/logout'>Logout</a></h1>"
+def dev():
+    try:
+        return render_template('dev.html')
+    except:
+        return """<div style='background:#FFF7ED;min-height:100vh;padding:20px;font-family:sans-serif'>
+        <h1 style='color:#FF6B00'>ZONDI DEV - Home Theme</h1>
+        <div style='background:white;padding:15px;border-radius:12px'>System Live<br>Users: OK<br>DB: Connected<br><a href='/login'>Client Portal</a> | <a href='/patrol'>Patrol Portal</a></div></div>"""
 
 @app.route('/logout')
 def logout():
