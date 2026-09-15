@@ -4,9 +4,23 @@ from datetime import timedelta
 import os, sqlite3, random
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_DIR = os.path.join(BASE_DIR, '..', 'templates')
+possible_paths = [
+    os.path.join(BASE_DIR, '..', 'templates'),
+    os.path.join(BASE_DIR, '..', '..', 'templates'),
+    os.path.join(BASE_DIR, 'templates'),
+    'templates'
+]
+TEMPLATE_DIR = None
+for p in possible_paths:
+    if os.path.exists(p):
+        TEMPLATE_DIR = os.path.abspath(p)
+        break
+if not TEMPLATE_DIR:
+    TEMPLATE_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', 'templates'))
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
+print(f"=== USING TEMPLATE DIR: {TEMPLATE_DIR} ===")
+print(f"=== EXISTS? {os.path.exists(TEMPLATE_DIR)} FILES: {os.listdir(TEMPLATE_DIR) if os.path.exists(TEMPLATE_DIR) else 'NO'} ===")
 app.secret_key = os.environ.get("SECRET_KEY", "ZONDI_FINAL")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
