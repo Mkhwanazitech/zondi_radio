@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 from flask import Flask, render_template, request, redirect, session, jsonify
 from flask_socketio import SocketIO
 from datetime import timedelta
@@ -23,8 +25,7 @@ print(f"=== USING TEMPLATE DIR: {TEMPLATE_DIR} ===")
 print(f"=== EXISTS? {os.path.exists(TEMPLATE_DIR)} FILES: {os.listdir(TEMPLATE_DIR) if os.path.exists(TEMPLATE_DIR) else 'NO'} ===")
 app.secret_key = os.environ.get("SECRET_KEY", "ZONDI_FINAL")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
-import eventlet
-eventlet.monkey_patch()
+
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 DB_PATH = 'zondi.db'
 
