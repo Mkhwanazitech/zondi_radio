@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZONDI Patrol - Home Theme</title>
+<style>
+body{margin:0;font-family:Inter,sans-serif;background:#FFF7ED;color:#222}
+.top{background:#FF6B00;color:white;padding:16px;text-align:center;font-weight:800;font-size:20px}
+.tabs{display:flex;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:10}
+.tab{flex:1;padding:14px;text-align:center;cursor:pointer;border-bottom:3px solid transparent;font-weight:600}
+.tab.active{border-color:#FF6B00;color:#FF6B00}
+.wrap{padding:12px;max-width:600px;margin:0 auto}
+.card{background:white;margin:12px 0;border-radius:18px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06)}
+#map{height:320px;background:linear-gradient(135deg,#FFEAD5,#FFD6A8);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9A4B00;font-weight:800;font-size:18px}
+.job{padding:12px;border-left:5px solid #FF6B00;background:#FFF7ED;margin:10px 0;border-radius:10px;display:flex;justify-content:space-between;align-items:center}
+.btn{background:#FF6B00;color:white;border:none;padding:13px 20px;border-radius:30px;width:100%;font-weight:800;margin-top:10px;cursor:pointer;font-size:15px}
+.btn-dark{background:#222}
+</style>
+</head>
+<body>
+<div class="top">ZONDI PATROL • HOME THEME • LIVE</div>
+<div class="tabs">
+  <div class="tab active" onclick="show('mapTab',this)">Map</div>
+  <div class="tab" onclick="show('jobsTab',this)">Jobs</div>
+  <div class="tab" onclick="show('chatTab',this)">Chat</div>
+</div>
+
+<div class="wrap">
+  <div id="mapTab" class="card">
+    <div id="map">📍<span>Ga-Rankuwa Patrol Zone</span><small style="font-weight:500;margin-top:6px">Live GPS Active</small></div>
+    <button class="btn">✅ I'm On Duty</button>
+    <button class="btn btn-dark">🚨 Panic / Request Backup</button>
+  </div>
+
+  <div id="jobsTab" class="card" style="display:none">
+    <h3 style="margin-top:0;color:#FF6B00">Incoming Jobs</h3>
+    <div class="job"><div><b>Intrusion Alert</b><br><small>0.3km • Client: Thabo</small></div><button style="background:#FF6B00;color:white;border:none;padding:8px 14px;border-radius:20px">Accept</button></div>
+    <div class="job"><div><b>Medical Assist</b><br><small>1.2km • Zondi HQ</small></div><button style="background:#FF6B00;color:white;border:none;padding:8px 14px;border-radius:20px">Accept</button></div>
+    <div class="job"><div><b>Gate Check</b><br><small>2.1km • Zone 4</small></div><button style="background:#222;color:white;border:none;padding:8px 14px;border-radius:20px">View</button></div>
+  </div>
+
+  <div id="chatTab" class="card" style="display:none">
+    <h3 style="margin-top:0;color:#FF6B00">Patrol Chat</h3>
+    <div style="background:#FFF7ED;border-radius:12px;padding:10px;height:200px;overflow:auto">
+      <div style="background:white;padding:8px 12px;border-radius:15px;margin:6px 0;width:fit-content"><b>HQ:</b> Unit 1 status?</div>
+      <div style="background:#FF6B00;color:white;padding:8px 12px;border-radius:15px;margin:6px 0;margin-left:auto;width:fit-content">On patrol, all clear ✅</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input id="msg" placeholder="Type message..." style="flex:1;padding:12px;border-radius:25px;border:1px solid #ddd">
+      <button class="btn" style="width:80px;margin:0">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id, el){
+  document.getElementById('mapTab').style.display='none';
+  document.getElementById('jobsTab').style.display='none';
+  document.getElementById('chatTab').style.display='none';
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
