@@ -1,40 +1,57 @@
-
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ZONDI PATROL SERVICE</title>
+<title>ZONDI - Login</title>
 <style>
-body{background:#000;color:#D4AF37;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-.card{background:#111;border:1px solid #D4AF37;border-radius:16px;padding:25px;width:90%;max-width:380px;box-shadow:0 0 20px rgba(212,175,55,0.3)}
-h1{text-align:center;color:gold;letter-spacing:2px;line-height:1.2}
-input,select{width:100%;padding:12px;margin:8px 0;background:#000;border:1px solid gold;color:gold;border-radius:8px;box-sizing:border-box}
-button{width:100%;padding:12px;background:gold;color:black;font-weight:bold;border:none;border-radius:8px;margin-top:10px;cursor:pointer;font-size:16px}
-.tabs{display:flex;gap:10px;margin-bottom:15px}
-.tab{flex:1;text-align:center;padding:8px;border:1px solid gold;cursor:pointer;border-radius:8px}
-.active{background:gold;color:black}
-.footer{text-align:center;margin-top:20px;font-size:12px;opacity:0.7;color:gold}
-#otpBox{display:none}
-#msg{color:#ff4444;text-align:center;font-size:13px}
-#mockOtp{color:white;background:#222;padding:8px;border-radius:5px;text-align:center}
+body{background:#000;color:gold;font-family:Arial;padding:20px}
+.box{max-width:400px;margin:50px auto;border:2px solid gold;padding:20px;border-radius:10px}
+input,select{width:100%;padding:12px;margin:8px 0;background:#111;color:gold;border:1px solid gold;border-radius:5px;box-sizing:border-box}
+button{width:100%;padding:12px;background:gold;color:#000;font-weight:bold;border:none;border-radius:5px;cursor:pointer;margin-top:10px}
+h2{text-align:center}
+.small{font-size:12px;color:#888;text-align:center;margin-top:10px}
 </style>
 </head>
 <body>
-<div class="card">
-<h1>ZONDI<br>PATROL SERVICE</h1>
-<p style="text-align:center;font-size:13px">Welcome, secure your community</p>
-
-<div class="tabs"><div id="tLogin" class="tab active" onclick="setMode('login')">Login</div><div id="tReg" class="tab" onclick="setMode('register')">Register</div></div>
-
+<div class="box">
+<h2>ZONDI SECURITY</h2>
 <input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Create / Enter Password">
-
-<div id="regFields">
-<input id="phone" placeholder="Cell number e.g 0712345678">
-<select id="role"><option value="client">Client Portal</option><option value="patroller">Patroller Portal</option><option value="dev">Dev Portal</option></select>
+<input id="password" type="password" placeholder="Password">
+<input id="phone" placeholder="Phone e.g 0821234567">
+<select id="role">
+<option value="client">Client</option>
+<option value="patroller">Patroller</option>
+<option value="dev">Dev</option>
+</select>
+<input id="otp" placeholder="Enter OTP">
+<button onclick="sendOtp()">Send OTP</button>
+<button onclick="register()">Register</button>
+<hr style="border-color:gold;margin:15px 0">
+<button onclick="login()" style="background:#fff">Login</button>
+<p id="msg" class="small"></p>
+<p class="small">Created by mkhwanazitech.com</p>
 </div>
-
-<div id="otpBox">
+<script>
+async function sendOtp(){
+ const r = await fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value, phone:document.getElementById('phone').value})});
+ const d = await r.json();
+ if(d.ok){document.getElementById('msg').innerText='MOCK OTP: '+d.mock_otp+' - copy it to OTP field'; document.getElementById('otp').value=d.mock_otp;} else {document.getElementById('msg').innerText=d.error}
+}
+async function register(){
+ const body={username:document.getElementById('username').value,password:document.getElementById('password').value,phone:document.getElementById('phone').value,role:document.getElementById('role').value,otp:document.getElementById('otp').value};
+ const r = await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const d = await r.json();
+ if(d.ok) window.location=d.redirect; else document.getElementById('msg').innerText=d.error||d.msg;
+}
+async function login(){
+ const body={username:document.getElementById('username').value,password:document.getElementById('password').value};
+ const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const d = await r.json();
+ if(d.ok) window.location=d.redirect; else document.getElementById('msg').innerText=d.msg;
+}
+</script>
+</body>
+</html><div id="otpBox">
 <input id="otp" placeholder="Enter OTP">
 <p id="mockOtp"></p>
 </div>
