@@ -125,7 +125,7 @@ def panic():
     conn.execute("INSERT INTO alerts (username,phone,address) VALUES (?,?,?)", (session['user'], u['phone'] if u else '', u['address'] if u else ''))
     conn.commit()
     conn.close()
-    socketio.emit('panic_alert', {'username': session['user']}, broadcast=True)
+    socketio.emit('panic_alert', {'username': session['user']})
     return jsonify(ok=True)
 
 @app.route('/patrol')
