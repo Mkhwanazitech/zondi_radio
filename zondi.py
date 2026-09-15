@@ -164,6 +164,18 @@ def dev():
 def logout():
     session.clear()
     return redirect('/login')
+    
+@app.route('/debug')
+def debug():
+    import os
+    out = f"TEMPLATE_DIR: {TEMPLATE_DIR}<br>"
+    out += f"Exists: {os.path.exists(TEMPLATE_DIR)}<br><br>"
+    for root, dirs, files in os.walk("."):
+        if "templates" in root or "templates" in dirs or any(f.endswith('.html') for f in files):
+            out += f"{root} -> {files}<br>"
+    if os.path.exists(TEMPLATE_DIR):
+        out += f"<br>Files in TEMPLATE_DIR: {os.listdir(TEMPLATE_DIR)}<br>"
+    return out
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
