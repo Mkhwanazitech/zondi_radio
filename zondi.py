@@ -3,7 +3,10 @@ from flask_socketio import SocketIO
 from datetime import timedelta
 import os, sqlite3, random
 
-app = Flask(__name__, template_folder='../templates')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, '..', 'templates')
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.secret_key = os.environ.get("SECRET_KEY", "ZONDI_FINAL")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
