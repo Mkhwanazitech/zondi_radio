@@ -2,39 +2,45 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Client Portal - ZONDI PATROL SERVICE</title>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<title>Dashboard</title>
 <style>
-body{background:#000;color:#D4AF37;font-family:Arial;margin:0}
-.header{background:#111;border-bottom:3px solid gold;padding:15px;display:flex;justify-content:space-between;align-items:center}
-.logo{font-weight:bold;letter-spacing:2px}
-.card{background:#0e0e0e;border:1px solid gold;border-radius:14px;padding:16px;margin:14px}
-.panic{background:#ff0000;color:#fff;border:none;padding:22px;width:100%;font-size:22px;font-weight:900;border-radius:14px;cursor:pointer;box-shadow:0 0 25px red;letter-spacing:2px}
-.btn{background:gold;color:#000;border:none;padding:13px;width:100%;border-radius:10px;font-weight:bold;margin-top:10px;cursor:pointer;font-size:16px}
-input,textarea{width:100%;padding:12px;margin:7px 0;background:#000;border:1px solid #D4AF37;color:gold;border-radius:10px;box-sizing:border-box}
-.footer{text-align:center;padding:20px;font-size:11px;opacity:0.5;border-top:1px solid #222;margin-top:20px}
-.tag{background:gold;color:black;padding:2px 8px;border-radius:20px;font-size:11px}
+body{background:#000;color:gold;font-family:Arial;padding:20px}
+.card{border:1px solid gold;padding:15px;margin:10px 0;border-radius:8px}
+input,textarea{width:100%;padding:10px;margin:5px 0;background:#111;color:gold;border:1px solid gold;box-sizing:border-box}
+button{padding:10px 15px;background:gold;color:#000;border:none;font-weight:bold;cursor:pointer;border-radius:5px;margin:5px}
+.panic{background:red;color:white;width:100%;padding:15px;font-size:18px}
 </style>
 </head>
 <body>
-<div class="header">
-<div class="logo">ZONDI PATROL <span style="color:white">SERVICE</span></div>
-<div><span style="font-size:12px">{{user['username']}} <span class="tag">CLIENT</span></span> | <a href="/logout" style="color:gold;text-decoration:none">Logout</a></div>
-</div>
-
-<div class="card">
-<h3 style="margin:0 0 10px 0">🛡️ My Protection Status</h3>
-<p style="line-height:1.8">
-<b>Username:</b> {{user['username']}}<br>
-<b>Phone:</b> {{user['phone']}}<br>
-<b>Address:</b> {{user['address'] or 'Not set'}}<br>
-<b>Status:</b> <span style="color:#0f0">● PROTECTED / ONLINE</span>
-</p>
-</div>
-
-<div class="card" style="border:2px solid red">
-<button class="panic" onclick="sendPanic()">🚨 PANIC BUTTON</button>
-<p style="text-align:center;font-size:12px;color:#aaa;margin-top:10px">Emergency? Press to alert all patrollers on duty with your address</p>
+<h2>Welcome {{ user['username'] }} ({{ user['role'] }})</h2>
+<p>Phone: {{ user['phone'] }} | Status: {{ user['status'] }}</p>
+<a href="/logout"><button>Logout</button></a>
+<hr>
+<button class="panic" onclick="panic()">🚨 PANIC BUTTON</button>
+<hr>
+<h3>Request Patrol</h3>
+<input id="address" placeholder="Your address">
+<textarea id="note" placeholder="Note"></textarea>
+<button onclick="requestPatrol()">Send Request</button>
+<hr>
+<h3>My Requests</h3>
+{% for r in requests %}
+<div class="card">#{{ r['id'] }} - {{ r['address'] }} - {{ r['status'] }}<br>{{ r['note'] }}</div>
+{% else %}
+<p>No requests yet</p>
+{% endfor %}
+<script>
+async function requestPatrol(){
+ await fetch('/api/request-patrol',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:document.getElementById('address').value, note:document.getElementById('note').value})});
+ location.reload();
+}
+async function panic(){
+ await fetch('/api/panic',{method:'POST'});
+ alert('Panic alert sent!');
+}
+</script>
+</body>
+</html><p style="text-align:center;font-size:12px;color:#aaa;margin-top:10px">Emergency? Press to alert all patrollers on duty with your address</p>
 </div>
 
 <div class="card">
