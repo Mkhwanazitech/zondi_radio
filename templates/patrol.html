@@ -2,100 +2,50 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patroller Portal - ZONDI PATROL SERVICE</title>
+<title>Patroller Portal</title>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
-body{background:#000;color:#D4AF37;font-family:Arial;margin:0}
-.header{background:#111;border-bottom:3px solid gold;padding:12px;display:flex;justify-content:space-between;align-items:center}
-.logo{font-weight:bold;letter-spacing:1px}
-.card{background:#0e0e0e;border:1px solid gold;border-radius:12px;padding:14px;margin:12px}
-.panic-card{background:#300;border:2px solid red;animation:flash 0.8s infinite;text-align:center}
-@keyframes flash{0%{background:#300}50%{background:#900}100%{background:#300}}
-.btn{background:gold;color:#000;border:none;padding:11px;border-radius:8px;font-weight:bold;cursor:pointer;width:100%;margin-top:8px;font-size:14px}
-.btn-green{background:#00ff00}
-.btn-blue{background:#00d4ff}
-.alert-item{border-bottom:1px solid #333;padding:8px 0;font-size:13px}
-.req-box{border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:12px;background:#111}
-.status-pending{color:orange} .status-accepted{color:#0f0} .status-completed{color:#888}
-.footer{text-align:center;padding:15px;font-size:11px;opacity:0.4}
+body{background:#000;color:gold;font-family:Arial;padding:20px}
+.card{border:1px solid gold;padding:12px;margin:10px 0;border-radius:8px;background:#111}
+button{padding:8px 12px;margin:3px;background:gold;color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold}
+.alert{border-color:red;color:#ff6b6b}
+.pending{border-left:5px solid orange}
+.accepted{border-left:5px solid green}
 </style>
 </head>
 <body>
-<div class="header">
-<div class="logo">ZONDI PATROL - <span style="color:white">PATROLLER</span> | {{user['username']}} <span style="background:gold;color:black;padding:2px 8px;border-radius:20px;font-size:10px">ON DUTY</span></div>
-<a href="/logout" style="color:gold;text-decoration:none;font-size:13px">Logout</a>
-</div>
-
-<div id="panicBox"></div>
-
-<div class="card">
-<h3 style="margin-top:0">🚨 Live Panic Alerts (Last 20)</h3>
-<div id="alertsList">
+<h2>🚓 PATROLLER: {{ user['username'] }}</h2>
+<a href="/logout"><button>Logout</button></a> <button onclick="location.reload()">Refresh</button>
+<p id="live" style="color:lime">● Live listening for requests...</p>
+<h3>🚨 Panic Alerts</h3>
 {% for a in alerts %}
-<div class="alert-item">
-<b style="color:red">{{a['username']}}</b> - {{a['phone']}}<br>
-{{a['address']}}<br>
-<small style="color:#888">{{a['created_at']}}</small>
-</div>
+<div class="card alert">#{{ a['id'] }} {{ a['username'] }} - {{ a['phone'] }} - {{ a['address'] }}</div>
 {% else %}
-<div style="color:#666;font-size:13px">No panic alerts yet</div>
+<p>No alerts</p>
 {% endfor %}
-</div>
-</div>
-
-<div class="card">
-<h3 style="margin-top:0">📋 All Patrol Requests (Live)</h3>
-<div id="requestsList">
+<h3>📋 All Patrol Requests</h3>
+<div id="requests">
 {% for r in requests %}
-<div class="req-box">
-<div style="display:flex;justify-content:space-between">
-<b>{{r['username']}}</b> <small class="status-{{r['status']}}">{{r['status'].upper()}}</small>
-</div>
-<div style="font-size:13px;margin:6px 0">{{r['address']}}</div>
-<div style="font-size:12px;color:#aaa">{{r['note']}}</div>
-<small style="color:#666">{{r['created_at']}}</small>
-{% if r['status']=='pending' %}
-<button class="btn btn-green" onclick="acceptReq({{r['id']}})">✅ ACCEPT PATROL</button>
-{% elif r['status']=='accepted' %}
-<button class="btn btn-blue" onclick="completeReq({{r['id']}})">✔️ MARK COMPLETED</button>
+<div class="card {{ r['status'] }}">
+<b>#{{ r['id'] }} {{ r['username'] }}</b> - {{ r['status'] }}<br>
+Address: {{ r['address'] }}<br>
+Note: {{ r['note'] }}<br>
+{% if r['status'] == 'pending' %}
+<button onclick="acceptReq({{ r['id'] }})">Accept</button>
+{% elif r['status'] == 'accepted' %}
+<button onclick="completeReq({{ r['id'] }})">Mark Completed</button>
 {% endif %}
 </div>
 {% else %}
-<div style="color:#666;font-size:13px">No patrol requests</div>
+<p>No requests</p>
 {% endfor %}
 </div>
-</div>
-
-<div class="footer">Created by mkhwanazitech.com<br>Patroller Dashboard - Live SocketIO</div>
-
 <script>
-const socket = io();
-const panicBox = document.getElementById('panicBox');
-const alarm = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
-
-function playAlarm(){
- alarm.play().catch(()=>{});
-}
-
-socket.on('panic_alert', data=>{
-  panicBox.innerHTML = `<div class="card panic-card"><h2 style="margin:0">🚨 PANIC ALERT!</h2><p style="font-size:18px;margin:8px 0"><b>${data.username}</b> NEEDS EMERGENCY HELP!</p><p style="font-size:13px">Check address below and respond NOW!</p></div>`;
-  playAlarm();
-  setTimeout(()=>location.reload(),1500);
-});
-
-socket.on('new_patrol_request', data=>{
-  // auto reload when new request comes
-  location.reload();
-});
-
-function acceptReq(id){
- if(!confirm('Accept this patrol request?')) return;
- fetch('/api/accept-request/'+id,{method:'POST'}).then(r=>r.json()).then(d=>{ if(d.ok) location.reload(); });
-}
-
-function completeReq(id){
- fetch('/api/complete-request/'+id,{method:'POST'}).then(r=>r.json()).then(d=>{ if(d.ok) location.reload(); });
-}
+var socket = io();
+socket.on('new_patrol_request', function(data){ document.getElementById('live').innerText = "🔔 NEW REQUEST from "+data.username+" - Refreshing..."; setTimeout(()=>location.reload(),1000); });
+socket.on('panic_alert', function(data){ alert("🚨 PANIC from "+data.username); location.reload(); });
+async function acceptReq(id){ await fetch('/api/accept-request/'+id,{method:'POST'}); location.reload(); }
+async function completeReq(id){ await fetch('/api/complete-request/'+id,{method:'POST'}); location.reload(); }
 </script>
 </body>
 </html>
