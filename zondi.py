@@ -160,26 +160,4 @@ def dev():
         return render_template('dev.html')
     except:
         return """<div style='background:#FFF7ED;min-height:100vh;padding:20px;font-family:sans-serif'>
-        <h1 style='color:#FF6B00'>ZONDI DEV - Home Theme</h1>
-        <div style='background:white;padding:15px;border-radius:12px'>System Live<br>Users: OK<br>DB: Connected<br><a href='/login'>Client Portal</a> | <a href='/patrol'>Patrol Portal</a></div></div>"""
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/login')
-    
-@app.route('/debug')
-def debug():
-    import os
-    out = f"TEMPLATE_DIR: {TEMPLATE_DIR}<br>"
-    out += f"Exists: {os.path.exists(TEMPLATE_DIR)}<br><br>"
-    for root, dirs, files in os.walk("."):
-        if "templates" in root or "templates" in dirs or any(f.endswith('.html') for f in files):
-            out += f"{root} -> {files}<br>"
-    if os.path.exists(TEMPLATE_DIR):
-        out += f"<br>Files in TEMPLATE_DIR: {os.listdir(TEMPLATE_DIR)}<br>"
-    return out
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host='0.0.0.0', port=port)
+        <h1 style='color:#FF6B00'>ZONDI DEV - Home Theme<
