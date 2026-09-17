@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Outfit',sans-serif}.leaflet-container{border-radius:24px}</style>
+</head>
+<body class="bg-[#fdf8f3] min-h-screen pb-24">
+
+<!-- PERMISSION MODAL - MUST ALLOW -->
+<div id="permModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6 hidden">
+<div class="bg-white rounded-[24px] p-6 max-w-sm w-full text-center">
+<h2 class="font-bold text-xl">Allow Location? 📍</h2>
+<p class="text-sm text-gray-500 mt-2">We need your location every 2 seconds so patrollers can see you even when you minimize the app. Your safety depends on this.</p>
+<button onclick="askPermission()" class="mt-5 w-full bg-[#ff6b2b] text-white p-4 rounded-xl font-bold">Allow Location & Continue</button>
+<p class="text-[11px] text-gray-400 mt-3">You must click Allow on the browser popup</p>
+</div>
+</div>
+
+<div class="bg-white p-6 rounded-b-[32px] shadow-sm flex justify-between">
+<div><p class="text-gray-400 text-sm">Protected by ZONDI</p><h1 class="text-2xl font-bold">{{ user['username'] }}</h1><p id="gpsText" class="text-xs text-gray-400 mt-1">GPS: waiting...</p></div>
+<div><span id="liveBadge" class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">● OFFLINE</span></div>
+</div>
+
+<div class="p-4">
+<div class="bg-white rounded-[24px] p-2 shadow-sm"><div id="map" style="height:260px"></div></div>
+
+<div class="bg-white rounded-[24px] p-6 shadow-sm mt-4 text-center">
+<h2 class="font-bold">Emergency?</h2><p class="text-xs text-gray-400">Hold for 2 seconds</p>
+<button id="panicBtn" class="mt-4 w-36 h-36 bg-red-500 rounded-full text-white font-bold text-xl shadow-[0_10px_30px_rgba(239,68,68,0.4)] select-none">HOLD<br>PANIC</button>
+<div class="w-full bg-gray-100 h-2 rounded-full mt-4 overflow-hidden"><div id="holdBar" class="h-full bg-red-500 w-0 transition-all"></div></div>
+</div>
+</div>
+
+<script>
+const socket = io();
+const myUser = "{{ user['username'] }}";
+let map = L.map('map').setView([-25.604,28.001],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let myMarker = null;
+let lastPos = null;
+
+// SAVE CREDENTIALS FOR NEXT TIME
+localStorage.setItem('zondi_user', myUser);
+
+// PERMISSION CHECK
+if(!localStorage.getItem('perm_granted')){
+  document.getElementById('permModal').classList.remove('hidden');
+}
+function askPermission(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    localStorage.setItem('perm_granted','yes');
+    document.getElementById('permModal').classList.add('hidden');
+    startTracking();
+  }, err=>{
+    alert("You MUST allow location! Click Allow on browser popup.");
+  }, {enableHighAccuracy:true});
+}
+
+// MAIN TRACKER - EVERY 2 SEC NON STOP
+function startTracking(){
+  document.getElementById('liveBadge').innerText = "● LIVE";
+  document.getElementById('liveBadge').className = "bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold";
+
+  // watch + interval to ensure 2 sec
+  navigator.geolocation.watchPosition(pos=>{
+    lastPos = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+    updateMapAndSend();
+  }, null, {enableHighAccuracy:true, maximumAge:0});
+
+  setInterval(()=>{ // force send every 2 sec even if not moved
+    if(lastPos) sendLocation(lastPos);
+  }, 2000);
+
+  // KEEP ALIVE WHEN MINIMIZED - Wake lock + visibility
+  if('wakeLock' in navigator){
+    navigator.wakeLock.request('screen').catch(()=>{});
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='visible' && lastPos) sendLocation(lastPos);
+  });
+}
+
+function updateMapAndSend(){
+  document.getElementById('gpsText').innerText = `● ${lastPos.lat.toFixed(5)}, ${lastPos.lng.toFixed(5)}`;
+  if(!myMarker) myMarker = L.marker([lastPos.lat, lastPos.lng]).addTo(map).bindPopup("You");
+  else myMarker.setLatLng([lastPos.lat, lastPos.lng]);
+  map.setView([lastPos.lat, lastPos.lng], 15);
+  sendLocation(lastPos);
+}
+
+function sendLocation(pos){
+  socket.emit('update_location',{username:myUser, lat:pos.lat, lng:pos.lng});
+  localStorage.setItem('last_lat',pos.lat);
+  localStorage.setItem('last_lng',pos.lng);
+}
+
+// AUTO START IF ALREADY GRANTED
+if(localStorage.getItem('perm_granted')) startTracking();
+
+// PANIC - HOLD 2 SEC
+let holdTimer=null, holdProgress=0;
+const panicBtn = document.getElementById('panicBtn');
+const holdBar = document.getElementById('holdBar');
+
+function startHold(e){
+  e.preventDefault();
+  holdProgress=0;
+  holdTimer = setInterval(()=>{
+    holdProgress+=50;
+    holdBar.style.width = (holdProgress/2000*100)+"%";
+    if(holdProgress>=2000){
+      clearInterval(holdTimer);
+      holdBar.style.width="0%";
+      triggerPanic();
+    }
+  },50);
+}
+function cancelHold(){
+  clearInterval(holdTimer);
+  holdBar.style.width="0%";
+}
+function triggerPanic(){
+  if(!lastPos) return alert("No GPS yet!");
+  socket.emit('panic_alert',{username:myUser, lat:lastPos.lat, lng:lastPos.lng});
+  fetch('/api/panic',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:lastPos.lat,lng:lastPos.lng})});
+  alert("🚨 PANIC SENT TO HQ!");
+  navigator.vibrate?.([1000,300,1000]);
+}
+panicBtn.addEventListener('touchstart', startHold);
+panicBtn.addEventListener('mousedown', startHold);
+panicBtn.addEventListener('touchend', cancelHold);
+panicBtn.addEventListener('mouseup', cancelHold);
+panicBtn.addEventListener('mouseleave', cancelHold);
+</script>
+</body>
+</html>
