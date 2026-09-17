@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body class="bg-[#fdf8f3]">
+<div class="bg-[#1a1d2d] p-4 text-white flex justify-between"><b>HQ - LIVE CLIENTS NEVER LOSE</b><span id="count">0 online</span></div>
+<div id="map" style="height:80vh"></div>
+<div id="alerts" class="p-2 space-y-1"></div>
+<script>
+const map = L.map('map').setView([-25.604,28.001],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const markers = {};
+const socket = io();
+
+// LOAD SAVED LOCATIONS FROM DB SO MAP NEVER EMPTY
+{% for c in clients %}
+{% if c['lat'] %}
+markers["{{ c['username'] }}"] = L.marker([{{ c['lat'] }}, {{ c['lng'] }}]).addTo(map).bindPopup("{{ c['username'] }} (last seen)");
+{% endif %}
+{% endfor %}
+
+// LIVE EVERY 2 SEC
+socket.on('client_moved', d=>{
+  if(!markers[d.username]) markers[d.username] = L.marker([d.lat,d.lng]).addTo(map).bindPopup(d.username);
+  else markers[d.username].setLatLng([d.lat,d.lng]);
+  document.getElementById('count').innerText = Object.keys(markers).length + " online";
+});
+
+socket.on('panic_triggered', d=>{
+  map.setView([d.lat,d.lng],18);
+  L.marker([d.lat,d.lng],{icon:L.divIcon({html:"🚨"})}).addTo(map).bindPopup(`PANIC ${d.username}<br><a href='https://maps.google.com/?q=${d.lat},${d.lng}' target='_blank'>Maps</a>`).openPopup();
+  document.getElementById('alerts').innerHTML = `<div class="bg-red-500 text-white p-3 rounded-xl">🚨 PANIC ${d.username} - <a href="https://maps.google.com/?q=${d.lat},${d.lng}" target="_blank" class="underline">📍 ${d.lat.toFixed(5)},${d.lng.toFixed(5)}</a></div>` + document.getElementById('alerts').innerHTML;
+  new Audio('https://actions.google.com/sounds/v1/alarms/emergency_tone.ogg').play().catch(()=>{});
+});
+</script>
+</body>
+</html>
