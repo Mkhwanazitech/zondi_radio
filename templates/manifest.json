@@ -1,0 +1,11 @@
+{
+  "name": "ZONDI Patrol",
+  "short_name": "ZONDI",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#fdf8f3",
+  "theme_color": "#ff6b2b",
+  "icons": [
+    {"src": "https://cdn-icons-png.flaticon.com/512/484/484167.png","sizes": "512x512","type": "image/png"}
+  ]
+}
