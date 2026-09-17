@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Outfit',sans-serif}.tab-active{background:#ff6b2b;color:white}</style>
+</head>
+<body class="bg-[#fdf8f3] min-h-screen pb-24">
+
+<div class="bg-[#1a1d2d] p-4 text-white flex justify-between items-center">
+<h1 class="font-bold">ZONDI HQ • {{ user['username'] }}</h1>
+<div class="flex gap-2"><span id="onlineCount" class="bg-white/20 px-3 py-1 rounded-full text-xs">0 clients</span><a href="/logout" class="text-xs bg-white/10 px-2 py-1 rounded-full">Logout</a></div>
+</div>
+
+<div class="p-3">
+<div class="bg-white rounded-[20px] p-2 shadow-sm">
+<div id="map" style="height:55vh"></div>
+<div class="flex gap-2 mt-2">
+<button onclick="setLayer('street')" class="flex-1 bg-gray-100 p-2 rounded-xl text-xs font-bold">🗺️ Street</button>
+<button onclick="setLayer('sat')" class="flex-1 bg-gray-100 p-2 rounded-xl text-xs font-bold">🛰️ Satellite</button>
+<button onclick="setLayer('topo')" class="flex-1 bg-gray-100 p-2 rounded-xl text-xs font-bold">⛰️ Topographic</button>
+</div>
+</div>
+
+<!-- TABS -->
+<div class="flex gap-2 mt-4">
+<button onclick="showTab('alerts')" id="t-alerts" class="tab-active flex-1 p-3 rounded-xl font-bold text-sm">🚨 Alerts</button>
+<button onclick="showTab('chat')" id="t-chat" class="flex-1 bg-white p-3 rounded-xl font-bold text-sm">💬 Comms</button>
+<button onclick="showTab('clients')" id="t-clients" class="flex-1 bg-white p-3 rounded-xl font-bold text-sm">👥 Clients</button>
+</div>
+
+<div id="tab-alerts" class="mt-3 space-y-2">
+<div id="alertList">
+{% for a in alerts %}
+<div class="bg-white p-4 rounded-2xl text-sm" data-lat="{{ a['lat'] }}" data-lng="{{ a['lng'] }}">
+<b class="text-red-600">🚨 {{ a['username'] }}</b><br>
+<span class="text-xs">📍 {{ a['lat'] }}, {{ a['lng'] }} • <span class="dist">calculating...</span></span><br>
+<a href="https://maps.google.com/?q={{ a['lat'] }},{{ a['lng'] }}" target="_blank" class="text-[#ff6b2b] text-xs font-bold">Open Maps →</a>
+<span class="text-[11px] text-gray-400 ml-2">{{ a['created_at'] }}</span>
+</div>
+{% endfor %}
+</div>
+</div>
+
+<div id="tab-chat" class="mt-3 hidden">
+<div class="bg-white rounded-2xl p-3 h-[300px] flex flex-col">
+<div id="chatBox" class="flex-1 overflow-y-auto space-y-2 text-sm"></div>
+<div class="flex gap-2 mt-2"><input id="chatInput" placeholder="Message all patrollers..." class="flex-1 p-3 rounded-xl bg-gray-50"><button onclick="sendChat()" class="bg-[#ff6b2b] text-white px-5 rounded-xl">Send</button></div>
+</div>
+</div>
+
+<div id="tab-clients" class="mt-3 hidden"><div id="clientList" class="space-y-2"></div></div>
+
+</div>
+
+<script>
+const socket = io();
+const myUsername = "{{ user['username'] }}";
+let myPos = null;
+let map = L.map('map').setView([-25.604,28.001],14);
+let street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+let topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
+let markers = {};
+
+function setLayer(t){
+  map.eachLayer(l=>{ if(l!=markers) map.removeLayer(l); });
+  if(t=='street') street.addTo(map);
+  if(t=='sat') sat.addTo(map);
+  if(t=='topo') topo.addTo(map);
+  Object.values(markers).forEach(m=>m.addTo(map));
+}
+function showTab(t){
+  ['alerts','chat','clients'].forEach(x=>{ document.getElementById('tab-'+x).classList.add('hidden'); document.getElementById('t-'+x).classList.remove('tab-active'); });
+  document.getElementById('tab-'+t).classList.remove('hidden');
+  document.getElementById('t-'+t).classList.add('tab-active');
+}
+
+// GO LIVE AS PATROLLER TO CALCULATE DISTANCE
+navigator.geolocation.watchPosition(p=>{
+  myPos = {lat:p.coords.latitude, lng:p.coords.longitude};
+  socket.emit('patrol_location',{username:myUsername, lat:myPos.lat, lng:myPos.lng});
+  calcAllDistances();
+}, null, {enableHighAccuracy:true});
+
+// DISTANCE FORMULA
+function getDist(lat1,lon1,lat2,lon2){
+  const R=6371; const dLat=(lat2-lat1)*Math.PI/180; const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return (R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(2);
+}
+function calcAllDistances(){
+  if(!myPos) return;
+  document.querySelectorAll('#alertList > div').forEach(div=>{
+    const lat=parseFloat(div.dataset.lat), lng=parseFloat(div.dataset.lng);
+    if(!lat) return;
+    const d=getDist(myPos.lat,myPos.lng,lat,lng);
+    div.querySelector('.dist').innerText = d+"km away from you";
+  });
+}
+
+// LOAD INITIAL CLIENTS
+{% for c in clients %}{% if c['lat'] %}
+markers["{{ c['username'] }}"]=L.marker([{{ c['lat'] }},{{ c['lng'] }}]).addTo(map).bindPopup("{{ c['username'] }}");
+{% endif %}{% endfor %}
+
+socket.on('client_moved', d=>{
+  if(!markers[d.username]) markers[d.username]=L.marker([d.lat,d.lng]).addTo(map).bindPopup(d.username+" (Client LIVE)");
+  else markers[d.username].setLatLng([d.lat,d.lng]);
+  document.getElementById('onlineCount').innerText = Object.keys(markers).length+" clients live";
+  // update client list
+  document.getElementById('clientList').innerHTML = Object.keys(markers).map(u=>`<div class="bg-white p-3 rounded-xl text-sm">👤 ${u} • LIVE</div>`).join('');
+});
+
+socket.on('panic_triggered', d=>{
+  map.setView([d.lat,d.lng],17);
+  const dist = myPos? getDist(myPos.lat,myPos.lng,d.lat,d.lng) : "?";
+  const html = `<div class="bg-red-500 text-white p-4 rounded-2xl text-sm animate-pulse" data-lat="${d.lat}" data-lng="${d.lng}">
+  <b>🚨 PANIC: ${d.username}</b><br>📍 ${d.lat.toFixed(5)}, ${d.lng.toFixed(5)} • <b>${dist}km away from you</b><br>
+  <a href="https://maps.google.com/?q=${d.lat},${d.lng}" target="_blank" class="underline font-bold">OPEN IN MAPS →</a>
+  </div>`;
+  document.getElementById('alertList').innerHTML = html + document.getElementById('alertList').innerHTML;
+  showTab('alerts');
+  new Audio('https://actions.google.com/sounds/v1/alarms/emergency_tone.ogg').play().catch(()=>{});
+});
+
+function sendChat(){
+  const m=document.getElementById('chatInput').value; if(!m) return;
+  socket.emit('patrol_chat',{msg:m});
+  document.getElementById('chatInput').value='';
+}
+socket.on('new_chat', d=>{
+  document.getElementById('chatBox').innerHTML += `<div class="bg-gray-50 p-2 rounded-xl"><b>${d.sender}:</b> ${d.msg}</div>`;
+});
+</script>
+</body>
+</html>
