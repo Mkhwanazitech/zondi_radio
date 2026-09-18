@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<style>body{font-family:'Outfit',sans-serif}.leaflet-container{border-radius:24px}</style>
+</head>
+<body class="bg-[#fdf8f3] min-h-screen pb-24">
+
+<!-- 1. PERMISSION POPUP - Forces client to allow -->
+<div id="permModal" class="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-6">
+<div class="bg-white rounded-[24px] p-6 max-w-sm w-full text-center shadow-2xl">
+<div class="w-16 h-16 bg-orange-100 rounded-full mx-auto flex items-center justify-center text-2xl">📍</div>
+<h2 class="font-bold text-xl mt-4">Enable Location</h2>
+<p class="text-sm text-gray-500 mt-2">ZONDI needs your location every 2 seconds so patrollers can protect you even when the app is minimized.</p>
+<button onclick="askPermission()" class="mt-5 w-full bg-[#ff6b2b] text-white p-4 rounded-xl font-bold">Allow Location</button>
+<p class="text-[11px] text-gray-400 mt-3">You will see a browser popup - click Allow</p>
+</div>
+</div>
+
+<!-- HEADER -->
+<div class="bg-white p-6 rounded-b-[32px] shadow-sm flex justify-between items-center">
+<div>
+<p class="text-gray-400 text-sm">Welcome home,</p>
+<h1 class="text-2xl font-bold text-[#1a1d2d]">{{ user['username'] }}</h1>
+<p id="gpsText" class="text-xs text-gray-400 mt-1">GPS: Waiting for permission...</p>
+</div>
+<div class="flex flex-col gap-2 items-end">
+<span id="liveBadge" class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">● OFFLINE</span>
+<a href="/logout" class="bg-gray-100 px-3 py-1 rounded-full text-xs">Logout</a>
+</div>
+</div>
+
+<!-- MAP WITH LAYER BUTTONS -->
+<div class="p-4">
+<div class="bg-white rounded-[24px] p-2 shadow-sm">
+<div id="map" style="height:260px"></div>
+<div class="flex gap-2 mt-2">
+<button onclick="setMapLayer('street')" class="flex-1 bg-[#1a1d2d] text-white p-2 rounded-xl text-xs font-bold">🗺️ Street</button>
+<button onclick="setMapLayer('sat')" class="flex-1 bg-gray-100 p-2 rounded-xl text-xs font-bold">🛰️ Satellite</button>
+<button onclick="setMapLayer('topo')" class="flex-1 bg-gray-100 p-2 rounded-xl text-xs font-bold">⛰️ Topo</button>
+</div>
+</div>
+
+<!-- PANIC HOLD 2 SEC -->
+<div class="bg-white rounded-[24px] p-6 shadow-sm mt-4 text-center">
+<h2 class="font-bold text-lg">Feel Unsafe?</h2><p class="text-gray-500 text-sm mt-1">Press and HOLD for 2 seconds - patrollers will come</p>
+<button id="panicBtn" class="mt-6 w-36 h-36 bg-red-500 rounded-full text-white font-bold text-xl shadow-[0_10px_30px_rgba(239,68,68,0.4)] active:scale-95 transition select-none">HOLD<br>2 SEC</button>
+<div class="w-full bg-gray-100 h-3 rounded-full mt-5 overflow-hidden"><div id="holdBar" class="h-full bg-red-500 w-0"></div></div>
+<p id="holdText" class="text-xs text-gray-400 mt-2">Hold to send panic with your live location</p>
+</div>
+</div>
+
+<script>
+const socket = io();
+const myUser = "{{ user['username'] }}";
+
+// SAVE LOGIN FOR NEXT TIME
+localStorage.setItem('zondi_user', myUser);
+
+// MAP SETUP WITH 3 LAYERS
+let map = L.map('map').setView([-25.604, 28.001], 14);
+let street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+let topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
+let myMarker = null;
+let lastPos = null;
+
+function setMapLayer(type){
+  map.eachLayer(l=>{ if(l instanceof L.TileLayer) map.removeLayer(l); });
+  if(type=='street') street.addTo(map);
+  if(type=='sat') sat.addTo(map);
+  if(type=='topo') topo.addTo(map);
+  if(myMarker) myMarker.addTo(map);
+}
+
+// PWA REGISTER
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js'); }
+
+// PERMISSION LOGIC
+if(localStorage.getItem('perm_granted')=='yes'){
+  document.getElementById('permModal').classList.add('hidden');
+  startTracking();
+}
+
+function askPermission(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    localStorage.setItem('perm_granted','yes
