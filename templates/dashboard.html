@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<link rel="manifest" href="/manifest.json">
+<style>body{font-family:Outfit,sans-serif}.leaflet-container{border-radius:24px}</style>
+</head>
+<body class="bg-[#fdf8f3] min-h-screen pb-24">
+
+<!-- FIXED PERMISSION MODAL -->
+<div id="permModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;">
+<div style="background:white;border-radius:24px;padding:24px;max-width:360px;width:100%;text-align:center;">
+<div style="width:64px;height:64px;background:#fff0e6;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px">📍</div>
+<h2 style="font-weight:800;font-size:20px;margin-top:16px">Enable Location</h2>
+<p style="font-size:14px;color:gray;margin-top:8px">ZONDI needs your location every 2 seconds so patrollers can protect you even when minimized.</p>
+<button id="allowBtn" style="margin-top:20px;width:100%;background:#ff6b2b;color:white;padding:16px;border-radius:16px;font-weight:800;border:none;cursor:pointer;">Allow Location</button>
+<p style="font-size:11px;color:#aaa;margin-top:12px">If nothing happens, click the 🔒 lock icon in your address bar → Site settings → Allow Location → Reload</p>
+<button onclick="localStorage.clear(); location.reload();" style="margin-top:12px;font-size:12px;color:#ff6b2b;background:none;border:none;text-decoration:underline">Reset & Try Again</button>
+</div>
+</div>
+
+<div class="bg-white p-6 rounded-b-[32px] shadow-sm flex justify-between">
+<div><p class="text-gray-400 text-sm">Welcome home,</p><h1 class="text-2xl font-bold">{{ user['username'] }}</h1><p id="gpsText" class="text-xs text-gray-400 mt-1">GPS: Waiting...</p></div>
+<span id="liveBadge" class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold h-fit">● OFFLINE</span>
+</div>
+
+<div class="p-4">
+<div class="bg-white rounded-[24px] p-2 shadow-sm"><div id="map" style="height:260px"></div></div>
+<div class="bg-white rounded-[24px] p-6 shadow-sm mt-4 text-center">
+<button id="panicBtn" class="mt-2 w-36 h-36 bg-red-500 rounded-full text-white font-bold text-xl shadow-lg">HOLD<br>2 SEC</button>
+<div class="w-full bg-gray-100 h-3 rounded-full mt-5 overflow-hidden"><div id="holdBar" class="h-full bg-red-500" style="width:0%"></div></div>
+</div>
+</div>
+
+<script>
+const socket = io();
+const myUser = "{{ user['username'] }}";
+let map = L.map('map').setView([-25.604,28.001],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let myMarker=null, lastPos=null;
+
+// PWA
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+
+const modal = document.getElementById('permModal');
+if(localStorage.getItem('perm_granted')=='yes'){ modal.style.display='none'; startTracking(); }
+
+document.getElementById('allowBtn').addEventListener('click', function(){
+  // This MUST be direct click, not wrapped
+  if(!navigator.geolocation){ alert("No GPS on this device"); return; }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    localStorage.setItem('perm_granted','yes');
+    modal.style.display='none';
+    startTracking();
+  }, function(err){
+    alert("Location blocked: "+err.message+"\n\nFix: Tap the lock icon 🔒 next to zondi-radio-1.onrender.com in address bar → Site Settings → Location → Allow → Reload page");
+  }, {enableHighAccuracy:true, timeout:10000});
+});
+
+function startTracking(){
+  document.getElementById('liveBadge').innerText="● LIVE";
+  document.getElementById('liveBadge').className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold h-fit";
+  navigator.geolocation.watchPosition(function(pos){
+    lastPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    document.getElementById('gpsText').innerText="📍 LIVE: "+lastPos.lat.toFixed(5)+","+lastPos.lng.toFixed(5);
+    if(!myMarker) myMarker=L.marker([lastPos.lat,lastPos.lng]).addTo(map);
+    else myMarker.setLatLng([lastPos.lat,lastPos.lng]);
+    map.setView([lastPos.lat,lastPos.lng],15);
+    socket.emit('update_location',{username:myUser,lat:lastPos.lat,lng:lastPos.lng});
+  }, null, {enableHighAccuracy:true});
+  setInterval(function(){ if(lastPos) socket.emit('update_location',{username:myUser,lat:lastPos.lat,lng:lastPos.lng}); },2000);
+}
+
+// Panic hold
+let timer=null, prog=0;
+const pBtn=document.getElementById('panicBtn'), bar=document.getElementById('holdBar');
+function sH(e){e.preventDefault(); prog=0; timer=setInterval(function(){prog+=50; bar.style.width=(prog/20)+"%"; if(prog>=2000){clearInterval(timer); bar.style.width="0%"; if(lastPos){socket.emit('panic_alert',{username:myUser,lat:lastPos.lat,lng:lastPos.lng}); alert("🚨 PANIC SENT!");}}},50);}
+function cH(){clearInterval(timer); bar.style.width="0%";}
+pBtn.addEventListener('touchstart',sH); pBtn.addEventListener('mousedown',sH);
+pBtn.addEventListener('touchend',cH); pBtn.addEventListener('mouseup',cH);
+</script>
+</body>
+</html>
